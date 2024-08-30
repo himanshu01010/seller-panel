@@ -17,7 +17,7 @@ const Signup = () => {
 
   const signupMutation = useMutation({
     mutationFn: (signupData) => {
-      return axios.post(`http://192.168.1.11:3000/seller/signup`, signupData);
+      return axios.post(`${import.meta.env.VITE_BACKEND_URL}/seller/signup`, signupData);
     },
     onSuccess: (response) => {
       console.log("Signup successful", response.data);

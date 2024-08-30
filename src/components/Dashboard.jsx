@@ -29,6 +29,8 @@ const rows = [
 ];
 
 const Dashboard = () => {
+
+  const url = import.meta.env.VITE_BACKEND_URL
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -55,6 +57,8 @@ const Dashboard = () => {
     { title: "Total Withdrawal", value: "₹0.00" },
     { title: "Pending Withdrawal", value: "9" }
   ];
+
+  console.log("url------------------>",url)
 
   return (
     <div className="w-full max-w-10xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -12,7 +12,7 @@ const Login = () => {
 
   const loginMutation = useMutation({
     mutationFn: (loginData) => {
-      return axios.post(`http://192.168.1.11:3000/seller/login`, loginData);
+      return axios.post(`${import.meta.env.VITE_BACKEND_URL}/seller/login`, loginData);
     },
     onSuccess: (response) => {
       console.log('Login successful', response.data);

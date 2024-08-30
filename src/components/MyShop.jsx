@@ -4,6 +4,8 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import editLogo from '../assets/editLogo.png';
+import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
 
 const MyShop = () => {
     const [keywords, setKeywords] = useState(['Cloth', 'Mens', 'Shoes']);
@@ -11,8 +13,26 @@ const MyShop = () => {
     const [socialLinks, setSocialLinks] = useState([
         { platform: 'Facebook', url: 'https://www.facebook.com' },
         { platform: 'Instagram', url: 'https://www.instagram.com' },
-        { platform: 'Linked In', url: 'https://www.linkedin.com' }
+        { platform: 'LinkedIn', url: 'https://www.linkedin.com' }
     ]);
+    const [shopName, setShopName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [opensAt, setOpensAt] = useState('');
+    const [closesAt, setClosesAt] = useState('');
+    const [address, setAddress] = useState('');
+    const [metaTitle, setMetaTitle] = useState('');
+    const [metaDescription, setMetaDescription] = useState('');
+
+    const mutation = useMutation({
+        mutationFn: (data) => {
+            const token = localStorage.getItem('token');
+            return axios.post(`${import.meta.env.VITE_BACKEND_URL}/seller/createStore`, data, {
+                headers:{
+                    Authorization:`Bearer ${token}`
+                }
+            });
+        },
+    });
 
     const handleDelete = (keywordToDelete) => {
         setKeywords((keywords) => keywords.filter((keyword) => keyword !== keywordToDelete));
@@ -38,7 +58,37 @@ const MyShop = () => {
         const newLinks = [...socialLinks];
         newLinks[index][field] = value;
         setSocialLinks(newLinks);
-    }
+    };
+
+    const handleSubmit = () => {
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        const sellerId = userData?._id;
+        console.log(sellerId)
+        const payload = {
+            sellerId,
+            shopName,
+            phone,
+            opensAt,
+            closesAt,
+            address,
+            seoContent: {
+                metaTitle,
+                metaDescription,
+                metaKeywords: keywords
+            },
+            socialLinks: socialLinks.filter(link => link.platform && link.url)
+        };
+        // console.log("social link ---->",socialLinks.filter(link => link.platform && link.url))
+
+        mutation.mutate(payload, {
+            onSuccess: (data) => {
+                console.log('Shop created successfully:', data);
+            },
+            onError: (error) => {
+                console.error('Error creating shop:', error);
+            }
+        });
+    };
 
     return (
         <div className="flex flex-col p-4 min-h-screen h-100">
@@ -144,10 +194,16 @@ const MyShop = () => {
                     Basic Information
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {['Shop Name', 'Phone', 'Opens at', 'Closed at', 'Address'].map((label) => (
+                    {['Shop Name', 'Phone', 'Opens at', 'Closed at', 'Address'].map((label, index) => (
                         <Box key={label} sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'flex-start', md: 'center' } }}>
                             <Typography sx={{ width: { xs: '100%', md: '200px' }, mr: 2, fontSize: { xs: '1rem', md: '1.5rem' }, mb: { xs: 1, md: 0 } }}>{label}</Typography>
-                            <TextField variant="outlined" sx={{ width: { xs: '100%', md: '700px' }, borderRadius: '20px', ml: { xs: 0, md: 30 } }} size="large" />
+                            <TextField 
+                                variant="outlined" 
+                                sx={{ width: { xs: '100%', md: '700px' }, borderRadius: '20px', ml: { xs: 0, md: 30 } }} 
+                                size="large"
+                                value={index === 0 ? shopName : index === 1 ? phone : index === 2 ? opensAt : index === 3 ? closesAt : address}
+                                onChange={(e) => index === 0 ? setShopName(e.target.value) : index === 1 ? setPhone(e.target.value) : index === 2 ? setOpensAt(e.target.value) : index === 3 ? setClosesAt(e.target.value) : setAddress(e.target.value)}
+                            />
                         </Box>
                     ))}
                 </Box>
@@ -167,52 +223,58 @@ const MyShop = () => {
                     <Typography variant="h4" sx={{ mb: 4, fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' } }}>
                         SEO Contents
                     </Typography>
-                    {['Meta Title', 'Meta Description'].map((label) => (
+                    {['Meta Title', 'Meta Description'].map((label, index) => (
                         <Box key={label} sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'flex-start', md: 'center' } }}>
                             <Typography sx={{ width: { xs: '100%', md: '200px' }, mr: 2, fontSize: { xs: '1rem', md: '1.5rem' }, mb: { xs: 1, md: 0 } }}>{label}</Typography>
                             <TextField
                                 variant="outlined"
-                                fullWidth
-                                multiline={label === 'Meta Description'}
-                                rows={label === 'Meta Description' ? 4 : 1}
                                 sx={{ width: { xs: '100%', md: '700px' }, borderRadius: '20px', ml: { xs: 0, md: 30 } }}
+                                size="large"
+                                multiline={index === 1}
+                                rows={index === 1 ? 4 : 1}
+                                value={index === 0 ? metaTitle : metaDescription}
+                                onChange={(e) => index === 0 ? setMetaTitle(e.target.value) : setMetaDescription(e.target.value)}
                             />
                         </Box>
                     ))}
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'flex-start', md: 'center' }, width: '100%' }}>
-                            <Typography sx={{ width: { xs: '100%', md: '200px' }, mr: 2, fontSize: { xs: '1rem', md: '1.5rem' }, mb: { xs: 1, md: 0 } }}>Meta Keywords</Typography>
-                            <TextField
-                                variant="outlined"
-                                fullWidth
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                onKeyPress={(e) => {
-                                    if (e.key === 'Enter') {
-                                        handleAddKeyword();
-                                        e.preventDefault();
-                                    }
-                                }}
-                                placeholder="Add a keyword and press Enter"
-                                sx={{ width: { xs: '100%', md: '700px' }, borderRadius: '20px', ml: { xs: 0, md: 30 } }}
+                </Box>
+
+                <Box sx={{ mt: 4 }}>
+                    <Typography variant="h5" sx={{ mb: 2 }}>
+                        Meta Keywords
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                        {keywords.map((keyword) => (
+                            <Chip
+                                key={keyword}
+                                label={keyword}
+                                onDelete={() => handleDelete(keyword)}
+                                sx={{ fontSize: '1rem', backgroundColor: '#047857', color: '#fff' }}
                             />
-                        </Box>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2, ml: { xs: 0, md: 57 } }}>
-                            {keywords.map((keyword, index) => (
-                                <Chip
-                                    key={index}
-                                    label={keyword}
-                                    onDelete={() => handleDelete(keyword)}
-                                    color="success"
-                                    sx={{ borderRadius: '20px' }}
-                                />
-                            ))}
-                        </Box>
+                        ))}
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center' }}>
+                        <TextField
+                            variant="outlined"
+                            placeholder="Add a keyword"
+                            size="small"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            sx={{ flexGrow: 1, borderRadius: '20px', mr: 1 }}
+                        />
+                        <Button
+                            variant="contained"
+                            onClick={handleAddKeyword}
+                            sx={{ mt: { xs: 2, md: 0 }, width: 'fit-content', backgroundColor: '#047857' }}
+                        >
+                            <AddIcon />
+                        </Button>
                     </Box>
                 </Box>
             </Box>
 
             <Box
+                component="div"
                 sx={{
                     width: { xs: '100%', md: '90%' },
                     border: '2px solid #047857',
@@ -222,65 +284,46 @@ const MyShop = () => {
                     mt: 10,
                 }}
             >
-                <Typography variant="h4" sx={{ mb: 4, fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' } }}>
-                    Social Links
-                </Typography>
-                {socialLinks.map((link, index) => (
-                    <Box key={index} sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'flex-start', md: 'center' }, mb: 2 }}>
-                        <TextField
-                            variant="outlined"
-                            label="Platform"
-                            value={link.platform}
-                            onChange={(e) => handleLinkChange(index, 'platform', e.target.value)}
-                            sx={{ width: { xs: '100%', md: '200px' }, mr: { xs: 0, md: 2 }, mb: { xs: 1, md: 0 } }}
-                        />
-                        <TextField
-                            variant="outlined"
-                            label="URL"
-                            value={link.url}
-                            onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
-                            sx={{ width: { xs: '100%', md: '700px' }, ml: { xs: 0, md: 2 }, mb: { xs: 1, md: 0 } }}
-                        />
-                        <IconButton
-                            sx={{
-                                mt: { xs: 1, md: 0 },
-                                ml: { xs: 0, md: 2 },
-                                border: '1px solid #047857',
-                                borderRadius: '8px',
-                                padding: '4px',
-                                width: { xs: '100%', md: '100px' },
-                                height: '50px',
-                            }}
-                            onClick={() => handleRemoveLink(index)}
-                        >
-                            <RemoveIcon />
-                        </IconButton>
-                    </Box>
-                ))}
-                <Button
-                    variant="outlined"
-                    sx={{ mt: 2, borderColor: '#047857', color: '#047857' }}
-                    onClick={handleAddLink}
-                >
-                    <AddIcon sx={{ mr: 1 }} /> Add New Link
-                </Button>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Typography variant="h4" sx={{ mb: 4, fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' } }}>
+                        Social Links
+                    </Typography>
+                    {socialLinks.map((link, index) => (
+                        <Box key={index} sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, mb: 2 }}>
+                            <TextField
+                                label="Platform"
+                                variant="outlined"
+                                value={link.platform}
+                                onChange={(e) => handleLinkChange(index, 'platform', e.target.value)}
+                                sx={{ flexGrow: 1, borderRadius: '20px' }}
+                            />
+                            <TextField
+                                label="URL"
+                                variant="outlined"
+                                value={link.url}
+                                onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
+                                sx={{ flexGrow: 2, borderRadius: '20px' }}
+                            />
+                            <IconButton onClick={() => handleRemoveLink(index)} sx={{ color: '#047857' }}>
+                                <RemoveIcon />
+                            </IconButton>
+                        </Box>
+                    ))}
+                    <Button
+                        variant="contained"
+                        onClick={handleAddLink}
+                        sx={{ width: 'fit-content', backgroundColor: '#047857' }}
+                    >
+                        <AddIcon />
+                    </Button>
+                </Box>
             </Box>
 
             <Button
-                sx={{
-                    ml: { xs: 0, md: 2 },
-                    border: '1px solid #047857',
-                    borderRadius: '8px',
-                    width: { xs: '100%', md: 1550 },
-                    height: '50px',
-                    mt: 5,
-                    backgroundColor: '#047857',
-                    '&:hover': {
-                        backgroundColor: 'rgba(4, 120, 87, 0.4)'
-                    },
-                    color: 'white',
-                    fontSize: '20px',
-                }}
+                variant="contained"
+                color="primary"
+                sx={{ mt: 5, alignSelf: 'center', backgroundColor: '#047857', width: '150px', height: '50px' }}
+                onClick={handleSubmit}
             >
                 Save Changes
             </Button>
