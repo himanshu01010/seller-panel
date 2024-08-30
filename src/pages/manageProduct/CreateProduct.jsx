@@ -1,11 +1,25 @@
 import React, { useState, useRef } from 'react';
-import { Card, CardContent, Typography, Box, TextField, Chip, IconButton, Button, Input, useTheme, useMediaQuery } from '@mui/material';
+import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+import { Card, CardContent, Typography, Box, TextField, Chip, Button, Input, useTheme, useMediaQuery } from '@mui/material';
 
 const CreateProduct = () => {
     const [keywords, setKeywords] = useState(['Cloth', 'Mens', 'Shoes']);
     const [inputValue, setInputValue] = useState('');
     const [mainImage, setMainImage] = useState(null);
     const [additionalImages, setAdditionalImages] = useState([]);
+    const [basicInfo, setBasicInfo] = useState({
+        productName: '',
+        model: '',
+        brand: '',
+        category: '',
+        productPrice: ''
+    });
+    const [seoContents, setSeoContents] = useState({
+        metaTitle: '',
+        metaDescription: '',
+    });
+
     const mainImageInputRef = useRef(null);
     const additionalImagesInputRef = useRef(null);
 
@@ -19,7 +33,7 @@ const CreateProduct = () => {
     const handleAddKeyword = () => {
         if (inputValue.trim() && !keywords.includes(inputValue)) {
             setKeywords([...keywords, inputValue]);
-        }   
+        }
         setInputValue('');
     };
 
@@ -36,11 +50,91 @@ const CreateProduct = () => {
         setAdditionalImages(prevImages => [...prevImages, ...newImages]);
     };
 
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setBasicInfo(prevInfo => ({
+            ...prevInfo,
+            [name]: value
+        }));
+    };
+
+    const handleSeoChange = (e) => {
+        const { name, value } = e.target;
+        setSeoContents(prevSeo => ({
+            ...prevSeo,
+            [name]: value
+        }));
+    };
+
+    
+    const mutation = useMutation({
+        mutationFn: async (newProduct) => {
+            const token = localStorage.getItem('token')
+            console.log('Sending product data:', newProduct);
+            const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/Seller/addProduct`, newProduct, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            return response.data;
+        },
+        onSuccess: (data) => {
+            console.log('Product added successfully:', data);
+            alert(data.message);
+        },
+        onError: (error) => {
+            console.error('Error adding product:', error);
+            alert('Error adding product. Please try again.');
+        }
+    });
+
+    
+    const handleSubmit = () => {
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        const sellerId = userData?._id;
+        const shopId = localStorage.getItem('shopId');
+        console.log("Seller ID:", sellerId);
+        console.log("Shop ID:", shopId);
+
+        if (!sellerId || !shopId) {
+            console.error('Seller ID or Shop ID is missing');
+            alert('Seller ID or Shop ID is missing. Please ensure you are logged in.');
+            return;
+        }
+
+        const productData = {
+            sellerId: sellerId,
+            shopId: shopId,
+            basicInformation: {
+                productName: basicInfo.productName,
+                model: basicInfo.model,
+                brand: basicInfo.brand,
+                category: basicInfo.category,
+                productPrice: parseFloat(basicInfo.productPrice),
+                status: 'available',
+            },
+            seoContents: {
+                metaTitle: seoContents.metaTitle,
+                metaDescription: seoContents.metaDescription,
+                metaKeywords: keywords,
+            },
+            media: {
+                primary: mainImage,
+                secondary: additionalImages,
+            },
+        };
+
+        console.log('Submitting product data:', productData);
+        mutation.mutate(productData);
+    };
+
     return (
         <Box className="flex flex-col p-4 min-h-screen h-100" sx={{ width: '100%' }}>
             <Typography variant={isMobile ? "h4" : "h3"}>
                 Add New Product
             </Typography>
+
+            {/* Basic Information Section */}
             <Box
                 component="div"
                 sx={{
@@ -56,15 +150,29 @@ const CreateProduct = () => {
                     Basic Information
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {['Product Name', 'Product Model', 'Brand', 'Categories', 'Base Price'].map((label) => (
-                        <Box key={label} sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center' }}>
-                            <Typography sx={{ width: isMobile ? '100%' : '200px', mr: 2, fontSize: isMobile ? '18px' : '25px', mb: isMobile ? 1 : 0 }}>{label}</Typography>
-                            <TextField variant="outlined" sx={{ width: '100%', maxWidth: isMobile ? 'none' : '700px', borderRadius: '20px', ml: isMobile ? 0 : 30 }} size="large" />
-                        </Box>
-                    ))}
+            {[
+                { label: 'Product Name', name: 'productName' },
+                { label: 'Product Model', name: 'model' },
+                { label: 'Brand', name: 'brand' },
+                { label: 'Categories', name: 'category' },
+                { label: 'Base Price', name: 'productPrice' }
+            ].map(({ label, name }) => (
+                <Box key={name} sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center' }}>
+                    <Typography sx={{ width: isMobile ? '100%' : '200px', mr: 2, fontSize: isMobile ? '18px' : '25px', mb: isMobile ? 1 : 0 }}>{label}</Typography>
+                    <TextField
+                        name={name}
+                        value={basicInfo[name]}
+                        onChange={handleInputChange}
+                        variant="outlined"
+                        sx={{ width: '100%', maxWidth: isMobile ? 'none' : '700px', borderRadius: '20px', ml: isMobile ? 0 : 30 }}
+                        size="large"
+                    />
                 </Box>
-            </Box>
+            ))}
+        </Box>
+        </Box>
 
+            {/* SEO Contents Section */}
             <Box
                 sx={{
                     width: '100%',
@@ -83,6 +191,9 @@ const CreateProduct = () => {
                         <Box key={label} sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center' }}>
                             <Typography sx={{ width: isMobile ? '100%' : '200px', mr: 2, fontSize: isMobile ? '18px' : '25px', mb: isMobile ? 1 : 0 }}>{label}</Typography>
                             <TextField
+                                name={label.toLowerCase().replace(' ', '')}
+                                value={seoContents[label.toLowerCase().replace(' ', '')]}
+                                onChange={handleSeoChange}
                                 variant="outlined"
                                 fullWidth
                                 multiline={label === 'Meta Description'}
@@ -124,6 +235,7 @@ const CreateProduct = () => {
                 </Box>
             </Box>
 
+            {/* Media Contents Section */}
             <Box
                 sx={{
                     width: '100%',
@@ -214,20 +326,23 @@ const CreateProduct = () => {
                     </Box>
                 </Box>
             </Box>
+
             <Button 
-                sx={{
-                    backgroundColor:'#047857',
-                    mt: 2,
-                    fontSize: isMobile ? '18px' : '25px',
-                    color:'white',
-                    '&:hover':{backgroundColor:'rgba(4, 120, 87, 0.9)'},
-                    width: '100%'
-                }}
-            >
-                Add
-            </Button>
+            onClick={handleSubmit}
+            disabled={mutation.isLoading}
+            sx={{
+                backgroundColor: mutation.isLoading ? 'gray' : '#047857',
+                mt: 2,
+                fontSize: isMobile ? '18px' : '25px',
+                color: 'white',
+                '&:hover': {backgroundColor: 'rgba(4, 120, 87, 0.9)'},
+                width: '100%'
+            }}
+        >
+            {mutation.isLoading ? 'Adding...' : 'Add'}
+        </Button>
         </Box>
-    )
+    );
 }
 
 export default CreateProduct;

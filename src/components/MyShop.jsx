@@ -81,13 +81,24 @@ const MyShop = () => {
         // console.log("social link ---->",socialLinks.filter(link => link.platform && link.url))
 
         mutation.mutate(payload, {
-            onSuccess: (data) => {
-                console.log('Shop created successfully:', data);
+            onSuccess: (response) => {
+                console.log('Shop created successfully:', response);
+                
+                const shopId = response?.data?.data?.id;
+                console.log(shopId)
+                
+                if (shopId) {
+                    localStorage.setItem('shopId', shopId);
+                    console.log('Shop ID stored in localStorage:', shopId);
+                } else {
+                    console.error('Shop ID not found in response');
+                }
             },
             onError: (error) => {
                 console.error('Error creating shop:', error);
             }
         });
+        
     };
 
     return (
